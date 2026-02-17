@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
+set -u
 
-if [ -z "$1" ]; then
+if [ "${1:-}" = "" ]; then
     echo "Usage: $0 <service-label>"
     echo "Example: $0 com.apple.screensharing"
+    exit 1
+fi
+
+if ! command -v launchctl >/dev/null 2>&1; then
+    echo "Error: launchctl command not found. This script must run on macOS." >&2
     exit 1
 fi
 
@@ -11,8 +17,7 @@ SERVICE="$1"
 echo "=================================================="
 echo "Checking status of: $SERVICE"
 echo "=================================================="
-# Check if the service is loaded and running
-LAUNCHCTL_OUTPUT=$(launchctl list | grep -w "$SERVICE")
+LAUNCHCTL_OUTPUT=$(launchctl list | awk -v label="$SERVICE" '$3 == label { print $0 }')
 
 if [ -z "$LAUNCHCTL_OUTPUT" ]; then
     echo "Service $SERVICE not currently loaded/running."
@@ -20,16 +25,16 @@ else
     echo "Service is loaded. Details:"
     echo "$LAUNCHCTL_OUTPUT"
     echo
-    # Print more details if available
     echo "Detailed launchctl info:"
-    sudo launchctl print system/"$SERVICE" 2>/dev/null || echo "No detailed info found. May not be a system-level service."
+    launchctl print "system/$SERVICE" 2>/dev/null \
+        || launchctl print "gui/$(id -u)/$SERVICE" 2>/dev/null \
+        || echo "No detailed info found."
 fi
 echo
 
 echo "=================================================="
 echo "Is the service enabled at startup?"
 echo "=================================================="
-# A rough check: look for a plist file in LaunchDaemons or LaunchAgents
 PLIST_PATHS=(
     "/Library/LaunchDaemons/$SERVICE.plist"
     "/Library/LaunchAgents/$SERVICE.plist"
@@ -41,9 +46,12 @@ for PLIST in "${PLIST_PATHS[@]}"; do
     if [ -f "$PLIST" ]; then
         ENABLED="Yes"
         echo "Found: $PLIST"
-        # Check if RunAtLoad is set
-        RUN_AT_LOAD=$(defaults read "${PLIST%.plist}" RunAtLoad 2>/dev/null)
-        echo "RunAtLoad: $RUN_AT_LOAD"
+        RUN_AT_LOAD=$(defaults read "${PLIST%.plist}" RunAtLoad 2>/dev/null || true)
+        if [ -n "$RUN_AT_LOAD" ]; then
+            echo "RunAtLoad: $RUN_AT_LOAD"
+        else
+            echo "RunAtLoad not explicitly set."
+        fi
         break
     fi
 done
@@ -59,7 +67,6 @@ echo "=================================================="
 if [ -z "$LAUNCHCTL_OUTPUT" ]; then
     echo "The service is not running."
 else
-    # launchctl list output format: PID ExitCode Label
     PID=$(echo "$LAUNCHCTL_OUTPUT" | awk '{print $1}')
     if [ "$PID" = "-" ]; then
         echo "The service is loaded but not currently running (no PID)."
@@ -73,11 +80,15 @@ echo "=================================================="
 echo "Dependencies for $SERVICE"
 echo "=================================================="
 echo "Dependency checks are not directly supported on macOS with launchctl."
-echo "You may inspect the service's plist file for 'LaunchEvents' or 'LaunchConstraints'."
+echo "Inspect the service plist for related LaunchEvents/LaunchConstraints keys."
 echo
 
 echo "=================================================="
 echo "Recent logs for $SERVICE:"
 echo "=================================================="
-# Show last 10 minutes of logs for the service. Adjust as needed.
-log show --last 10m --predicate "process == \"$SERVICE\"" --style syslog 2>/dev/null || echo "No recent logs found or no matching predicate."
+if command -v log >/dev/null 2>&1; then
+    log show --last 10m --predicate "eventMessage CONTAINS[c] \"$SERVICE\" OR process == \"$SERVICE\"" --style syslog 2>/dev/null \
+        || echo "No recent logs found or no matching predicate."
+else
+    echo "log command not found. Skipping log retrieval."
+fi
