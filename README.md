@@ -45,12 +45,12 @@ As this repository grows, you’ll find subdirectories organized by operating sy
 
 1. **Clone the Repository:**
    ```bash
-   git clone https://github.com/<your-username>/service-checker.git
+   git clone https://github.com/<your-username>/service-health-checks.git
    ```
    
 2. **Navigate into the Project Directory:**
    ```bash
-   cd service-checker/linux
+   cd service-health-checks/linux
    ```
    
 3. **Make the Script Executable:**
@@ -89,7 +89,7 @@ For example, `./check_service.sh sshd` works the same as `./check_service.sh ssh
 
 1. **Navigate to the macOS directory:**
    ```bash
-   cd service-checker/macos
+   cd service-health-checks/macos
    ```
 
 2. **Make the Script Executable:**
@@ -131,7 +131,7 @@ For example, to check the status of the `com.apple.screensharing` service:
 
 1. **Navigate to the Windows directory:**
    ```powershell
-   cd service-checker\windows
+   cd service-health-checks\windows
    ```
 
 2. **Ensure the script is accessible:**
@@ -176,3 +176,13 @@ Contributions are welcome! If you have a script or idea for improving cross-plat
 ## License
 
 All scripts and code in this repository are released under the [MIT License](LICENSE), allowing you to freely use, modify, and distribute the tools as you see fit.
+## Testing
+
+A lightweight behavior-focused test suite is available for the Linux and macOS scripts.
+It uses command stubbing so tests remain stable and are resilient to environment differences.
+
+Run from repository root:
+
+```bash
+./tests/test_scripts.sh
+```
