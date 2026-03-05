@@ -75,6 +75,21 @@ For example, to check the status of `sshd.service`:
 **Note:** Most systemd services end with `.service` but you can omit the suffix if you prefer.
 For example, `./check_service.sh sshd` works the same as `./check_service.sh sshd.service` on many systems.
 
+
+#### Full system resource check
+
+You can also run a broader resource audit script for Linux:
+
+```bash
+./full_system_check.sh
+```
+
+Optional: set `TOP_COUNT` to control how many entries are shown (default: 5).
+
+```bash
+TOP_COUNT=10 ./full_system_check.sh
+```
+
 ---
 
 ### macOS (launchd-based)
